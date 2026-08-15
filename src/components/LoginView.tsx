@@ -51,40 +51,32 @@ export default function LoginView({
   }, [emailOtpCountdown]);
 
   const finalizeAuthentication = (name: string, identifier: string, method: LoggedInUser['authMethod'], backendUser?: BackendUser) => {
-    setIsVerifying(true);
-    setProgressMsg('Exchanging secure handshake token...');
+    setIsVerifying(false);
 
-    setTimeout(() => {
-      setProgressMsg('Broadcasting node consensus key...');
-      setTimeout(() => {
-        setIsVerifying(false);
+    const fallbackAvatar = selectedRole === 'customer'
+      ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'
+      : selectedRole === 'seller'
+        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoAL8ofMRyL8kK_sYXBp_4J5XwePZQ_K1_9StG4EkZdaYa9qxrtabVpwVkHWzfWg74YTz3ckjzbmsxnK0g7N57RVGNRxSwjLbgcrRUORPa-F9ev2RJAGll9ppZfPmCRTfQX9YWhyapxPnIZrWy6QcEXlEM70Fz8RfF9pfTjirT1urJ7-p8nC8WRmswBLMypTur2EmDoonUeyCHUDRGRUYKZ3oNzHPuqwIfadVdEr-5QnPca_F8mDfT5wYs2UVqEesaGf-2GjxHEdsq'
+        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCfMWpyldO-8cnwsG7JzSrsxx9DrG4McUUom3CqMpQJVpj1v6I6TLZMadueF362Qs8Cjf7SfKJ3E4zmfFXEWy9Djbz4BUZUn2tkAKCrpYU2V4CwCLmff7VgNXZIGt_Mrh6YE_bXQ8CYgn1R_3lX8X2QuLDCkU1GQgz_N3aS83HjvoCw34wBwsuwL9vFEC4uRDKdE60KqoobRFrYkPPeUDlbc5pYHTVkjSN0SGDx0YGsUNofl4_CUVDD4k7gGQlZ-p3iHJnoeulHb1zf';
 
-        const fallbackAvatar = selectedRole === 'customer'
-          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'
-          : selectedRole === 'seller'
-            ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoAL8ofMRyL8kK_sYXBp_4J5XwePZQ_K1_9StG4EkZdaYa9qxrtabVpwVkHWzfWg74YTz3ckjzbmsxnK0g7N57RVGNRxSwjLbgcrRUORPa-F9ev2RJAGll9ppZfPmCRTfQX9YWhyapxPnIZrWy6QcEXlEM70Fz8RfF9pfTjirT1urJ7-p8nC8WRmswBLMypTur2EmDoonUeyCHUDRGRUYKZ3oNzHPuqwIfadVdEr-5QnPca_F8mDfT5wYs2UVqEesaGf-2GjxHEdsq'
-            : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCfMWpyldO-8cnwsG7JzSrsxx9DrG4McUUom3CqMpQJVpj1v6I6TLZMadueF362Qs8Cjf7SfKJ3E4zmfFXEWy9Djbz4BUZUn2tkAKCrpYU2V4CwCLmff7VgNXZIGt_Mrh6YE_bXQ8CYgn1R_3lX8X2QuLDCkU1GQgz_N3aS83HjvoCw34wBwsuwL9vFEC4uRDKdE60KqoobRFrYkPPeUDlbc5pYHTVkjSN0SGDx0YGsUNofl4_CUVDD4k7gGQlZ-p3iHJnoeulHb1zf';
+    const emailStr = (backendUser?.email || identifier || 'community@zenvego.org').trim().toLowerCase();
+    const fullName = backendUser?.fullName || name || emailStr.split('@')[0] || 'Zenvego Neighbor';
 
-        const emailStr = (backendUser?.email || identifier || 'community@zenvego.org').trim().toLowerCase();
-        const fullName = backendUser?.fullName || name || emailStr.split('@')[0] || 'Zenvego Neighbor';
-
-        const authenticatedUser: LoggedInUser = {
-          id: backendUser?.id || 'user_' + Math.random().toString(36).substr(2, 9),
-          name: fullName,
-          email: emailStr,
-          emailOrPhone: emailStr,
-          phone: backendUser?.phone,
-          role: (backendUser?.role as LoggedInUser['role']) || selectedRole,
-          authMethod: method,
-          avatar: backendUser?.avatar || fallbackAvatar,
-          banner: backendUser?.banner,
-          address: backendUser?.address,
-          createdAt: backendUser?.createdAt,
-          updatedAt: backendUser?.updatedAt,
-        };
-        onLoginSuccess(authenticatedUser);
-      }, 1000);
-    }, 900);
+    const authenticatedUser: LoggedInUser = {
+      id: backendUser?.id || 'user_' + Math.random().toString(36).substr(2, 9),
+      name: fullName,
+      email: emailStr,
+      emailOrPhone: emailStr,
+      phone: backendUser?.phone,
+      role: (backendUser?.role as LoggedInUser['role']) || selectedRole,
+      authMethod: method,
+      avatar: backendUser?.avatar || fallbackAvatar,
+      banner: backendUser?.banner,
+      address: backendUser?.address,
+      createdAt: backendUser?.createdAt,
+      updatedAt: backendUser?.updatedAt,
+    };
+    onLoginSuccess(authenticatedUser);
   };
 
   const handleSendEmailOtp = async () => {
@@ -100,8 +92,7 @@ export default function LoginView({
     try {
       const res = await authApi.sendOtp(cleanEmail, displayName.trim() || undefined);
       if (res.status === 'success') {
-        if (authApi.isOfflineMode && res.message) addToast(res.message);
-        addToast("✅ Verification email sent! Check your inbox (and spam folder).");
+        addToast("✅ Verification code sent! Please check your email inbox and spam folder.");
         setEmailOtpSent(true);
         setEmailOtpCountdown(60);
         setEnteredEmailOtp('');

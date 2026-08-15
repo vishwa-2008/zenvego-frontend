@@ -9,6 +9,7 @@ import FarmerDashboard from './components/FarmerDashboard';
 import FarmerInventory from './components/FarmerInventory';
 import DeliveryDashboard from './components/DeliveryDashboard';
 import DeliveryActiveRoute from './components/DeliveryActiveRoute';
+import InvestmentDashboard from './components/InvestmentDashboard';
 import LoginView from './components/LoginView';
 import RegistrationOnboarding from './components/RegistrationOnboarding';
 import SellerAccountView from './components/SellerAccountView';
@@ -644,6 +645,9 @@ Always be warm, concise, and solution-focused. If you do not know something spec
             measurementSystem={measurementSystem}
           />
         )}
+        {currentView === 'investment-dashboard' && (
+          <InvestmentDashboard />
+        )}
         {currentView === 'login' && (
           <LoginView 
             setView={setCurrentView} 
@@ -756,6 +760,14 @@ Always be warm, concise, and solution-focused. If you do not know something spec
                   }`}
                 >
                   Market Shop
+                </button>
+                <button
+                  onClick={() => setCurrentView('investment-dashboard')}
+                  className={`py-1.5 px-2 rounded-lg text-left transition-all font-bold ${
+                    currentView === 'investment-dashboard' ? 'bg-[#ff5c3e] text-white' : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  Azeri Investment
                 </button>
                 <button
                   onClick={() => setCurrentView('checkout')}

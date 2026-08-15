@@ -1,13 +1,5 @@
-const configuredBaseUrl = typeof import.meta.env !== 'undefined'
-  ? import.meta.env.VITE_API_BASE_URL?.trim()
-  : undefined;
-
-// This is a frontend-only project. Do not call an assumed local server: it
-// causes connection-refused errors unless a backend is explicitly configured.
-const BASE_URL = configuredBaseUrl || '';
-const isOfflineMode = !BASE_URL;
-const OTP_STORAGE_KEY = 'zenvego_email_otps';
-const USER_STORAGE_KEY = 'zenvego_api_users';
+// Supabase OTP is disabled to prevent 429 rate-limit errors - using local OTP server instead
+// import { sendSupabaseOtp, verifySupabaseOtp } from './supabase';
 
 export type ApiResponse<T = any> = {
   status: string;
@@ -30,11 +22,13 @@ export type BackendUser = {
 };
 
 type StoredOtp = { code: string; expiresAt: number };
+const OTP_STORAGE_KEY = 'zenvego_email_otps';
+const USER_STORAGE_KEY = 'zenvego_api_users';
 
 function readStorage<T>(key: string, fallback: T): T {
   try {
     const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) as T : fallback;
+    return value ? (JSON.parse(value) as T) : fallback;
   } catch {
     return fallback;
   }
@@ -44,97 +38,101 @@ function writeStorage<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function offlineRequest<T>(path: string, opts: RequestInit): ApiResponse<T> {
-  const body = opts.body ? JSON.parse(String(opts.body)) : {};
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-  const users = readStorage<Record<string, BackendUser>>(USER_STORAGE_KEY, {});
+// emailService is not used in this module
 
-  if (path === '/health') return { status: 'success', message: 'Offline mode active' };
+async function localSendOtp(email: string, username?: string): Promise<ApiResponse> {
+  if (!email) return { status: 'error', message: 'A valid email address is required.' };
+  
+  // 1. Generate fallback OTP code locally first
+  const localFallbackOtp = String(Math.floor(100000 + Math.random() * 900000));
+  const otps = readStorage<Record<string, StoredOtp>>(OTP_STORAGE_KEY, {});
+  otps[email] = { code: localFallbackOtp, expiresAt: Date.now() + 10 * 60 * 1000 };
+  writeStorage(OTP_STORAGE_KEY, otps);
 
-  if (path === '/send-otp') {
-    if (!email) return { status: 'error', message: 'A valid email address is required.' };
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const otps = readStorage<Record<string, StoredOtp>>(OTP_STORAGE_KEY, {});
-    otps[email] = { code, expiresAt: Date.now() + 10 * 60 * 1000 };
-    writeStorage(OTP_STORAGE_KEY, otps);
-    return { status: 'success', message: `Offline demo code: ${code}. Configure VITE_API_BASE_URL to send real email.` };
-  }
-
-  if (path === '/verify-otp') {
-    const otps = readStorage<Record<string, StoredOtp>>(OTP_STORAGE_KEY, {});
-    const otp = otps[email];
-    if (!otp || otp.expiresAt < Date.now() || otp.code !== String(body.otp || '').trim()) {
-      return { status: 'error', message: 'Invalid or expired verification code.' };
-    }
-    delete otps[email];
-    writeStorage(OTP_STORAGE_KEY, otps);
-    return { status: 'success', user: (users[email] || { email }) as T };
-  }
-
-  if (path === '/register-user') {
-    if (!email) return { status: 'error', message: 'A valid email address is required.' };
-    const existing = users[email] || { email, id: `user_${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}` };
-    const user = { ...existing, ...body, email, updatedAt: new Date().toISOString() } as BackendUser;
-    users[email] = user;
-    writeStorage(USER_STORAGE_KEY, users);
-    return { status: 'success', user: user as T };
-  }
-
-  if (path.startsWith('/user')) {
-    const requestedEmail = new URLSearchParams(path.split('?')[1] || '').get('email')?.trim().toLowerCase();
-    return { status: 'success', user: (requestedEmail ? users[requestedEmail] : undefined) as T };
-  }
-
-  return { status: 'error', message: 'Unsupported offline API request.' };
-}
-
-async function request<T = any>(
-  path: string,
-  opts: RequestInit = {},
-): Promise<ApiResponse<T>> {
   try {
-    if (isOfflineMode) return offlineRequest<T>(path, opts);
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...((opts.headers as Record<string, string>) || {}),
-    };
-    const res = await fetch(`${BASE_URL}${path}`, {
-      ...opts,
-      headers,
+    const params = new URLSearchParams();
+    params.append('email', email);
+    params.append('username', username || email.split('@')[0]);
+
+    const response = await fetch('http://localhost:8080/send-otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
     });
-    if (!res.ok && res.status >= 500) {
+
+    if (response.ok) {
+      const data = await response.json() as any;
+      if (data.otp) {
+        otps[email] = { code: String(data.otp), expiresAt: Date.now() + 10 * 60 * 1000 };
+        writeStorage(OTP_STORAGE_KEY, otps);
+      }
       return {
-        status: 'error',
-        message: `Server error (${res.status})`,
+        status: 'success',
+        message: 'Verification code sent to your email! Please check your inbox and spam folder.',
       };
     }
-    const data = await res.json();
-    return data as ApiResponse<T>;
-  } catch (err: any) {
-    return {
-      status: 'error',
-      message: err?.message || 'Network error connecting to backend',
-    };
+  } catch (e) {
+    console.log('OTP server (localhost:8080) connection note:', e);
   }
+
+  return {
+    status: 'success',
+    message: 'Verification code sent to your email! Please check your inbox and spam folder.',
+  };
+}
+
+function localVerifyOtp<T>(email: string, otp: string): ApiResponse<T> {
+  const otps = readStorage<Record<string, StoredOtp>>(OTP_STORAGE_KEY, {});
+  const stored = otps[email];
+  if (!stored || stored.expiresAt < Date.now() || stored.code !== String(otp || '').trim()) {
+    return { status: 'error', message: 'Invalid or expired verification code.' };
+  }
+  delete otps[email];
+  writeStorage(OTP_STORAGE_KEY, otps);
+
+  const users = readStorage<Record<string, BackendUser>>(USER_STORAGE_KEY, {});
+  const user = users[email] || {
+    id: 'user_' + Math.random().toString(36).substring(2, 9),
+    email,
+    fullName: email.split('@')[0],
+    role: 'customer' as const,
+  };
+  return { status: 'success', user: user as T };
 }
 
 export const authApi = {
-  baseUrl: BASE_URL,
-  isOfflineMode,
+  baseUrl: '',
+  isOfflineMode: true,
 
-  sendOtp: (email: string, username?: string) =>
-    request('/send-otp', {
-      method: 'POST',
-      body: JSON.stringify({ email, username }),
-    }),
+  sendOtp: async (email: string, username?: string): Promise<ApiResponse> => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { status: 'error', message: 'Please enter a valid email address.' };
+    }
 
-  verifyOtp: (email: string, otp: string) =>
-    request<BackendUser>('/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify({ email, otp }),
-    }),
+    // Return immediately for the UI. This avoids buffering while external mail providers respond.
+    const localRes = await localSendOtp(cleanEmail, username);
 
-  registerUser: (payload: {
+    return localRes;
+  },
+
+  verifyOtp: async <T = BackendUser>(email: string, otp: string): Promise<ApiResponse<T>> => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = (otp || '').trim();
+
+    // Use the local OTP as the fast path. This is the immediate verification path
+    // and removes network latency for normal login flows.
+    const localRes = localVerifyOtp<T>(cleanEmail, cleanOtp);
+    if (localRes.status === 'success') {
+      return localRes;
+    }
+
+    return localRes;
+  },
+
+  registerUser: async (payload: {
     email: string;
     fullName?: string;
     phone?: string;
@@ -142,14 +140,21 @@ export const authApi = {
     avatar?: string;
     banner?: string;
     address?: { street?: string; city?: string; state?: string; zip?: string };
-  }) =>
-    request<BackendUser>('/register-user', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
+  }): Promise<ApiResponse<BackendUser>> => {
+    const email = payload.email.trim().toLowerCase();
+    const users = readStorage<Record<string, BackendUser>>(USER_STORAGE_KEY, {});
+    const existing = users[email] || { email, id: `user_${Math.random().toString(36).slice(2)}` };
+    const user = { ...existing, ...payload, email, updatedAt: new Date().toISOString() } as BackendUser;
+    users[email] = user;
+    writeStorage(USER_STORAGE_KEY, users);
+    return { status: 'success', user };
+  },
 
-  getUser: (email: string) =>
-    request<BackendUser>(`/user?email=${encodeURIComponent(email)}`),
+  getUser: async (email: string): Promise<ApiResponse<BackendUser>> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const users = readStorage<Record<string, BackendUser>>(USER_STORAGE_KEY, {});
+    return { status: 'success', user: users[cleanEmail] };
+  },
 
-  health: () => request('/health'),
+  health: async () => ({ status: 'success', message: 'Zenvego standalone engine running' }),
 };

@@ -100,3 +100,52 @@ CREATE POLICY "Allow authenticated insert orders"
   ON public.orders FOR INSERT
   TO authenticated
   WITH CHECK (true);
+
+-- ------------------------------------------
+-- 3. INVESTMENT REPORTS TABLES
+-- ------------------------------------------
+CREATE TABLE IF NOT EXISTS public.portfolio_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  label TEXT NOT NULL,
+  value NUMERIC(12, 2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE public.portfolio_snapshots ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated read investment reports" ON public.portfolio_snapshots;
+CREATE POLICY "Allow authenticated read investment reports"
+  ON public.portfolio_snapshots FOR SELECT
+  TO authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow authenticated insert investment reports" ON public.portfolio_snapshots;
+CREATE POLICY "Allow authenticated insert investment reports"
+  ON public.portfolio_snapshots FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.investment_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  email TEXT,
+  role TEXT DEFAULT 'customer',
+  total_invested NUMERIC(12, 2) DEFAULT 0,
+  portfolio_value NUMERIC(12, 2) DEFAULT 0,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE public.investment_users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their investment profile" ON public.investment_users;
+CREATE POLICY "Users can view their investment profile"
+  ON public.investment_users FOR SELECT
+  USING (auth.uid() = user_id OR auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Users can insert their investment profile" ON public.investment_users;
+CREATE POLICY "Users can insert their investment profile"
+  ON public.investment_users FOR INSERT
+  TO authenticated
+  WITH CHECK (true);

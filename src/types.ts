@@ -9,6 +9,7 @@ export type ViewState =
   | 'farmer-inventory'
   | 'delivery-dashboard'
   | 'delivery-route'
+  | 'investment-dashboard'
   | 'login'
   | 'registration-onboarding';
 
