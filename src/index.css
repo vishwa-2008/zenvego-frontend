@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0f5238;
+  --color-primary-container: #2d6a4f;
+  --color-surface-dim: #f1d4c6;
+  --color-on-error-container: #93000a;
+  --color-on-secondary: #text-white;
+  --color-surface-container-high: #ffe2d5;
+  --color-on-tertiary: #ffffff;
+  --color-primary-fixed: #b1f0ce;
+  --color-secondary-container: #ff5c3e;
+  --color-surface-container-highest: #faddce;
+  --color-tertiary-container: #a24000;
+  --color-on-secondary-container: #5d0900;
+  --color-secondary-fixed: #ffdad3;
+  --color-on-tertiary-container: #ffcfba;
+  --color-on-primary: #ffffff;
+  --color-surface-container: #ffeae0;
+  --color-inverse-primary: #95d4b3;
+  --color-secondary-fixed-dim: #ffb4a5;
+  --color-surface-container-low: #fff1eb;
+  --color-tertiary-fixed: #ffdbcc;
+  --color-surface-tint: #2c694e;
+  --color-on-background: #271810;
+  --color-outline: #707973;
+  --color-secondary: #b5270e;
+  --color-on-primary-container: #a8e7c5;
+  --color-background: #fff8f6;
+  --color-tertiary: #7c2f00;
+  --color-on-secondary-fixed-variant: #8e1300;
+  --color-surface: #fff8f6;
+  --color-on-tertiary-fixed: #351000;
+  --color-inverse-on-surface: #ffede5;
+  --color-on-error: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-outline-variant: #bfc9c1;
+  --color-surface-bright: #fff8f6;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-primary-fixed-dim: #95d4b3;
+  --color-on-surface-variant: #404943;
+  --color-on-primary-fixed: #002114;
+  --color-surface-variant: #faddce;
+  --color-on-primary-fixed-variant: #0e5138;
+  --color-on-tertiary-fixed-variant: #7b2f00;
+  --color-inverse-surface: #3e2d23;
+  --color-on-surface: #271810;
+  --color-tertiary-fixed-dim: #ffb694;
+  --color-on-secondary-fixed: #3e0400;
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.fill-icon {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.ai-pulse {
+  animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(15, 82, 56, 0.2); }
+  50% { border-color: rgba(15, 82, 56, 0.8); }
+}
+
+.ai-pulse-gradient {
+  background: linear-gradient(45deg, #0f5238, #a24000, #0f5238);
+  background-size: 200% 200%;
+  animation: pulse-grad 3s ease infinite;
+}
+
+@keyframes pulse-grad {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes scan {
+  0% { top: 0%; opacity: 0.2; }
+  50% { top: 100%; opacity: 1; }
+  100% { top: 0%; opacity: 0.2; }
+}
+.animate-scan-line {
+  animation: scan 2.5s ease-in-out infinite;
+}
+
+@keyframes progress-bar {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.animate-progress-fast {
+  animation: progress-bar 3s linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
+}
+.animate-confetti {
+  animation: confetti-fall 4s linear infinite;
+}
+
+@keyframes logo-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(15, 82, 56, 0.25), 0 0 2px rgba(15, 82, 56, 0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(15, 82, 56, 0.65), 0 0 8px rgba(15, 82, 56, 0.3);
+    transform: scale(1.03);
+  }
+}
+.logo-breathing-highlight {
+  animation: logo-pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes rainbow-border {
+  0%, 100% {
+    border-color: rgba(15, 82, 56, 0.4);
+  }
+  50% {
+    border-color: rgba(251, 146, 60, 0.8);
+  }
+}
+.logo-ring-shimmer {
+  animation: rainbow-border 4s ease-in-out infinite;
+}
+

@@ -1,0 +1,6 @@
+{
+  "name": "Zenvego",
+  "description": "Hyperlocal Farmers Market Community Ledger & Ecosystem with Client, Farmer, and Delivery Partner Dashboards.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
